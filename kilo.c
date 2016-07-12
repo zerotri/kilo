@@ -239,9 +239,10 @@ fatal:
 int editorReadKey(int fd) {
     int nread;
     char c, seq[3];
-    while ((nread = read(fd,&c,1)) == 0);
-    if (nread == -1) exit(1);
+    //while ((nread = read(fd,&c,1)) == 0);
+    //if (nread == -1) exit(1);
 
+    if( ( (nread = read(fd,&c,1)) != 0 ) && (nread != -1) )
     while(1) {
         switch(c) {
         case ESC:    /* escape sequence */
@@ -285,6 +286,7 @@ int editorReadKey(int fd) {
             return c;
         }
     }
+    else return CTRL_L;
 }
 
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
@@ -863,6 +865,10 @@ void editorRefreshScreen(void) {
 
     abAppend(&ab,"\x1b[?25l",6); /* Hide cursor. */
     abAppend(&ab,"\x1b[H",3); /* Go home. */
+
+    getWindowSize(STDIN_FILENO,STDOUT_FILENO, &E.screenrows,&E.screencols);
+    E.screenrows -= 2; /* Get room for status bar. */
+
     for (y = 0; y < E.screenrows; y++) {
         int filerow = E.rowoff+y;
 
@@ -870,7 +876,7 @@ void editorRefreshScreen(void) {
             if (E.numrows == 0 && y == E.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "Kilo editor -- verison %s\x1b[0K\r\n", KILO_VERSION);
+                    "Kilo editor -- version %s\x1b[0K\r\n", KILO_VERSION);
                 int padding = (E.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
@@ -1217,6 +1223,7 @@ void editorProcessKeypress(int fd) {
         break;
     case CTRL_L: /* ctrl+l, clear screen */
         /* Just refresht the line as side effect. */
+        return;
         break;
     case ESC:
         /* Nothing to do for ESC in this mode. */
